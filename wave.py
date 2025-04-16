@@ -3,7 +3,7 @@ from scipy.optimize import curve_fit
 import matplotlib.pyplot as plt
 
 # Given constants
-x0, x1, xr = 30, 104, 0
+x0, x1, xr = 1, 76, 104
 h0, h1 = 1.5, 9.0
 n_tau = 1.5
 n_epsilon = 0.75 * (n_tau + 1)
