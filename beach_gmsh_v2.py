@@ -96,22 +96,18 @@ print("sum", sum(d))
 extbl = gmsh.model.geo.extrudeBoundaryLayer(gmsh.model.getEntities(2), [1] * N, s, True)
 
 # get "top" surfaces created by extrusion
-gmsh.model.geo.synchronize()
-top_ent = [s for s in extbl if s[0] == 2]
-top_surf = [s[1] for s in top_ent]
-print("top_ent", top_ent, "top_surf", top_surf)
+print("extbl", extbl)
 
 # Extrude the top surface of boundary layer
 gmsh.model.geo.synchronize()
-ext_3d = gmsh.model.geo.extrude(top_ent, 0, 0, -5, recombine=True)
-'''
 top = []
 for i in range(1, len(extbl)):
     if extbl[i][0] == 3:
         top.append(extbl[i-1])
 print("top", top)
+ext_3d = gmsh.model.geo.extrude([(2, 54)], 0, 0, 5, recombine=True)
 
-
+'''
 left_top = gmsh.model.geo.addPoint(x0, 0, -2, lc, point_id)
 base_left = point_id
 point_id += 1
@@ -180,7 +176,7 @@ gmsh.model.setPhysicalName(2, 1204, "bottom")
 mesh = '2D'
 if mesh:
     gmsh.model.geo.synchronize()
-    #gmsh.model.mesh.generate(2)
+    gmsh.model.mesh.generate(2)
     gmsh.write("beach_profile.msh")
 else:
     gmsh.model.mesh.generate(3)
