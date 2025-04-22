@@ -98,7 +98,8 @@ spl_ext = gmsh.model.geo.extrude([(1, spl_back), (1, l_bs)], 0, y, 0, recombine=
 
 # Make surface transfinite and recombine for quadrangles
 gmsh.model.geo.synchronize()
-# surface = dim_tag(gmsh.model.getEntities(2), 2)
+bot_surface = dim_tag(gmsh.model.getEntities(2), 2)
+print("bot", bot_surface)
 # for s in surface:
 #    gmsh.model.geo.mesh.setTransfiniteSurface(s)
 #    gmsh.model.geo.mesh.setRecombine(2, s)
@@ -106,7 +107,7 @@ gmsh.model.geo.synchronize()
 # Add boundary layer
 N = 12  # number of layers
 r = 1.1  # ratio
-s = [-0.02]  # thickness of first layer
+s = [-0.02]  # thickness of the first layer
 d = [0.02]
 for i in range(1, N): d.append(d[-1] + d[0] * r ** i)
 for i in range(1, N): s.append(s[-1] + s[0] * r ** i)
@@ -114,7 +115,7 @@ print("height of the last layer of bl: ", max(d))
 print("sum", sum(d))
 extbl = gmsh.model.geo.extrudeBoundaryLayer(gmsh.model.getEntities(2), [1] * N, s, True)
 
-# Extrude the top surface of boundary layer
+# Extrude the top surface of the boundary layer
 gmsh.model.geo.synchronize()
 bl_top = []
 for i in range(1, len(extbl)):
@@ -187,9 +188,11 @@ s_front = gmsh.model.geo.addPlaneSurface([ll_front])
 ss_loop = gmsh.model.geo.addSurfaceLoop([s_front, bl_top_tag[0], bl_top_tag[1], s_right, s_top, s_left, s_back])
 
 # Add physical name for B.C
-#frontandback = gmsh.model.addPhysicalGroup(2, [ov[-3][1]], tag=1202)  # Top surface
-gmsh.model.addPhysicalGroup(2, [s_front, s_back], 500, "frontandback")
-#gmsh.model.setPhysicalName(2, s_front, s_back, "frontandback")
+gmsh.model.addPhysicalGroup(2, bot_surface, 500, "bottom")
+gmsh.model.addPhysicalGroup(2, [s_front, s_back, 27, 19, 41, 49], 501, "frontandback")
+gmsh.model.addPhysicalGroup(2, [31, s_left], 502, "inlet")
+gmsh.model.addPhysicalGroup(2, [s_top], 503, "top")
+gmsh.model.addPhysicalGroup(2, [45, s_right], 504, "outlet")
 
 # Add volume
 gmsh.model.geo.synchronize()
@@ -222,6 +225,7 @@ if mesh == '2D':
     gmsh.model.mesh.generate(2)
     gmsh.write("beach_profile.msh")
 else:
+    gmsh.model.geo.synchronize()
     gmsh.model.mesh.generate(3)
     gmsh.write("beach_3d.msh")
 
