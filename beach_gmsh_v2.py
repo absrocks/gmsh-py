@@ -2,8 +2,10 @@ import numpy as np
 import gmsh
 import sys
 from scipy.optimize import curve_fit
+
 gmsh.initialize(sys.argv)
 gmsh.model.add("beach_profile")
+
 
 def dim_tag(entities, n):
     tag = []
@@ -15,6 +17,8 @@ def dim_tag(entities, n):
             print("tag is", tag, "for corresponding dimension", dim)
 
     return tag
+
+
 def get_coords(line):
     point_ids = gmsh.model.getAdjacencies(1, line)
     if len(point_ids):
@@ -27,6 +31,8 @@ def get_coords(line):
         point_id1 = point_ids[1][1]
 
     return coords0, coords1, point_id0, point_id1
+
+
 # Parameters
 x1, x2, x0 = 76, 104, 1
 h1, h2, h0 = 1.5, 9.0, 0
@@ -40,9 +46,11 @@ alpha = (h2 ** exponent - h1 ** exponent) / (x1 - x0)
 x_vals = np.linspace(x0, x1, 300)
 h_vals = ((x_vals * alpha) + h1 ** exponent) ** (1 / exponent)
 
+
 # Define fitting function: h = A * (x - b)^n
 def power_law(x, A, b, n):
     return A * np.power(x - b, n)
+
 
 # Initial guess: A, b, n
 initial_guess = [1.0, 0.0, 0.3]
@@ -71,36 +79,37 @@ for x, z in zip(x_vals, h_vals):
     curve_pts_front.append(gmsh.model.geo.addPoint(x, y, z, lc / 5))
 
 # Define Points
-p_bbrc = gmsh.model.geo.addPoint(x2, 0, h_max, lc/5) # Bottom back right corner
-#p_bfrc = gmsh.model.geo.addPoint(x2, y, h_max, lc/4) # Bottom front right corner
-p_tbrc = gmsh.model.geo.addPoint(x2, 0, h0, lc) # Top back right corner
-p_tfrc = gmsh.model.geo.addPoint(x2, y, h0, lc) # Top front right corner
-p_tblc = gmsh.model.geo.addPoint(x0+0.866, 0, h0, lc/4) # Top back left corner
-p_tflc = gmsh.model.geo.addPoint(x0+0.866, y, h0, lc/4) # Top front left corner
+p_bbrc = gmsh.model.geo.addPoint(x2, 0, h_max, lc / 5)  # Bottom back right corner
+# p_bfrc = gmsh.model.geo.addPoint(x2, y, h_max, lc/4) # Bottom front right corner
+p_tbrc = gmsh.model.geo.addPoint(x2, 0, h0, lc)  # Top back right corner
+p_tfrc = gmsh.model.geo.addPoint(x2, y, h0, lc)  # Top front right corner
+p_tblc = gmsh.model.geo.addPoint(x0 + 0.866, 0, h0, lc / 4)  # Top back left corner
+p_tflc = gmsh.model.geo.addPoint(x0 + 0.866, y, h0, lc / 4)  # Top front left corner
 
 # Draw spline based on the points
 spl_back = gmsh.model.geo.addSpline(curve_pts_back)
 
 # Draw the other lines on bottom surface
-l_bs = gmsh.model.geo.addLine(curve_pts_back[-1], p_bbrc) # Connecting line between spline end point and bottom back right corner
+l_bs = gmsh.model.geo.addLine(curve_pts_back[-1],
+                              p_bbrc)  # Connecting line between spline end point and bottom back right corner
 
 # Extrude to Y
 spl_ext = gmsh.model.geo.extrude([(1, spl_back), (1, l_bs)], 0, y, 0, recombine=True)
 
 # Make surface transfinite and recombine for quadrangles
 gmsh.model.geo.synchronize()
-#surface = dim_tag(gmsh.model.getEntities(2), 2)
-#for s in surface:
+# surface = dim_tag(gmsh.model.getEntities(2), 2)
+# for s in surface:
 #    gmsh.model.geo.mesh.setTransfiniteSurface(s)
 #    gmsh.model.geo.mesh.setRecombine(2, s)
 
 # Add boundary layer
-N = 12 # number of layers
-r = 1.1 # ratio
-s = [-0.02] # thickness of first layer
+N = 12  # number of layers
+r = 1.1  # ratio
+s = [-0.02]  # thickness of first layer
 d = [0.02]
-for i in range(1, N): d.append(d[-1] + d[0] * r**i)
-for i in range(1, N): s.append(s[-1] + s[0] * r**i)
+for i in range(1, N): d.append(d[-1] + d[0] * r ** i)
+for i in range(1, N): s.append(s[-1] + s[0] * r ** i)
 print("height of the last layer of bl: ", max(d))
 print("sum", sum(d))
 extbl = gmsh.model.geo.extrudeBoundaryLayer(gmsh.model.getEntities(2), [1] * N, s, True)
@@ -110,21 +119,22 @@ gmsh.model.geo.synchronize()
 bl_top = []
 for i in range(1, len(extbl)):
     if extbl[i][0] == 3:
-        bl_top.append(extbl[i-1])
+        bl_top.append(extbl[i - 1])
 
 # Draw the other lines on top surface
-l_tf = gmsh.model.geo.addLine(p_tflc, p_tfrc) # Connecting line between top front left and right corner
-l_tr = gmsh.model.geo.addLine(p_tfrc, p_tbrc) # Connecting line between top right front and back corner
-l_tb = gmsh.model.geo.addLine(p_tbrc, p_tblc) # Connecting line between top back right and left corner
-l_tl = gmsh.model.geo.addLine(p_tblc, p_tflc) # Connecting line between top left front and back corner
+l_tf = gmsh.model.geo.addLine(p_tflc, p_tfrc)  # Connecting line between top front left and right corner
+l_tr = gmsh.model.geo.addLine(p_tfrc, p_tbrc)  # Connecting line between top right front and back corner
+l_tb = gmsh.model.geo.addLine(p_tbrc, p_tblc)  # Connecting line between top back right and left corner
+l_tl = gmsh.model.geo.addLine(p_tblc, p_tflc)  # Connecting line between top left front and back corner
 
 # Make loop and surface
 ll_top = gmsh.model.geo.addCurveLoop([l_tf, l_tr, l_tb, l_tl])
 s_top = gmsh.model.geo.addPlaneSurface([ll_top])
 
 # Extract lines and coordinates from top surface of boundary layer
-print("s_top", bl_top[0])
+
 bl_top_tag = dim_tag(bl_top, 2)
+print("bl_top", bl_top_tag)
 gmsh.model.geo.synchronize()
 for i in range(len(bl_top)):
     up, lines = gmsh.model.getAdjacencies(2, bl_top_tag[i])
@@ -134,66 +144,57 @@ for i in range(len(bl_top)):
             coords0, coords1, point_id0, point_id1 = get_coords(lines[j])
             if coords0[0] == x2 and coords1[0] == x2:
                 if coords0[1] == y:
-                    l_trf = gmsh.model.geo.addLine(point_id0, p_tfrc)    # Connecting line between front right top and bottom point
-                    l_trb = gmsh.model.geo.addLine(p_tbrc, point_id1)    # Connecting line between back right top and bottom point
+                    l_trf = gmsh.model.geo.addLine(point_id0,
+                                                   p_tfrc)  # Connecting line between front right top and bottom point
+                    l_trb = gmsh.model.geo.addLine(p_tbrc,
+                                                   point_id1)  # Connecting line between back right top and bottom point
                 elif coords1[1] == y:
                     l_trf = gmsh.model.geo.addLine(point_id1, p_tfrc)
                     l_trb = gmsh.model.geo.addLine(p_tbrc, point_id0)
-                l_fbr = lines[j]                                        # Connecting line between bottom right front and back corner
-            elif coords0[1] == 0 and coords1[0] == 0:
-                l_blr = lines[j]                                             # Connecting line between back bottom left and right corner
-            elif coords0[1] == y and coords1[0] == y:
-                l_flr = lines[j]                                             # Connecting line between front bottom left and right corner
+                l_fbr = lines[j]  # Connecting line between bottom right front and back corner
+            elif coords0[1] == 0 and coords1[1] == 0:
+                if coords0[0] == x0 or coords1[0] == x0:
+                    l_bls = lines[j]  # Connecting line between back bottom left and right corner
+                elif coords0[0] == x2 or coords1[0] == x2:
+                    l_bsr = lines[j]  # Connecting line between back bottom left and right corner
+            elif coords0[1] == y and coords1[1] == y:
+                if coords0[0] == x0 or coords1[0] == x0:
+                    l_fls = lines[j]  # Connecting line between back bottom left and right corner
+                elif coords0[0] == x2 or coords1[0] == x2:
+                    l_fsr = lines[j]  # Connecting line between back bottom left and right corner
             elif coords0[0] == x0 and coords1[0] == x0:
-                l_fbl = lines[j]                                        # Connecting line between bottom left front and back corner
+                l_fbl = lines[j]  # Connecting line between bottom left front and back corner
                 p_fbl0 = point_id0
                 p_fbl1 = point_id1
                 if coords0[1] == y:
-                    l_tlf = gmsh.model.geo.addLine(point_id0, p_tflc)    # Connecting line between front right top and bottom point
-                    l_tlb = gmsh.model.geo.addLine(p_tblc, point_id1)    # Connecting line between back right top and bottom point
+                    l_tlf = gmsh.model.geo.addLine(p_tflc, point_id0
+                                                   )  # Connecting line between front right top and bottom point
+                    l_tlb = gmsh.model.geo.addLine(point_id1, p_tblc
+                                                   )  # Connecting line between back right top and bottom point
                 elif coords1[1] == y:
                     l_tlf = gmsh.model.geo.addLine(point_id1, p_tfrc)
                     l_tlb = gmsh.model.geo.addLine(p_tblc, point_id0)
-# Create lines at left plane
 
-#ext_3d = gmsh.model.geo.extrude([(2, 54)], 0, 0, 5, recombine=True)
+# Create curve and surface loops
+ll_right = gmsh.model.geo.addCurveLoop([l_tr, l_trf, l_fbr, l_trb])
+s_right = gmsh.model.geo.addPlaneSurface([ll_right])
+ll_left = gmsh.model.geo.addCurveLoop([l_tl, l_tlf, l_fbl, l_tlb])
+s_left = gmsh.model.geo.addPlaneSurface([ll_left])
+ll_back = gmsh.model.geo.addCurveLoop([l_tb, -l_tlb, l_bls, l_bsr, -l_trb])
+s_back = gmsh.model.geo.addPlaneSurface([ll_back])
+ll_front = gmsh.model.geo.addCurveLoop([l_tf, -l_tlf, l_fls, l_fsr, -l_trf])
+s_front = gmsh.model.geo.addPlaneSurface([ll_front])
+ss_loop = gmsh.model.geo.addSurfaceLoop([s_front, bl_top_tag[0], bl_top_tag[1], s_right, s_top, s_left, s_back])
 
-'''
-left_top = gmsh.model.geo.addPoint(x0, 0, -2, lc, point_id)
-base_left = point_id
-point_id += 1
+# Add physical name for B.C
+#frontandback = gmsh.model.addPhysicalGroup(2, [ov[-3][1]], tag=1202)  # Top surface
+gmsh.model.addPhysicalGroup(2, [s_front, s_back], 500, "frontandback")
+#gmsh.model.setPhysicalName(2, s_front, s_back, "frontandback")
 
-right_top = gmsh.model.geo.addPoint(x2, 0,-2, lc, point_id)
-base_right = point_id
-point_id += 1
-
-
-bottom_beach_right = gmsh.model.geo.addPoint(x2, 0, h_max, lc/4, point_id)
-base_bottom = point_id
-point_id += 1
-
-N = 6 # number of layers
-r = 1.2 # ratio
-d = [-100] # thickness of first layer
-for i in range(1, N): d.append(d[-1] - (-d[0]) * r**i)
-
-extbl = gmsh.model.geo.extrudeBoundaryLayer([(1,spl), (1,bottom_line)],
-                                            [1] * N, d, True)
-
-gmsh.model.addPhysicalGroup(2, [1], 1)
-gmsh.model.setPhysicalName(2, 1, "back")
-
-'''
-#gmsh.model.addPhysicalGroup(2, [dim_tag(spl_ext , 2) ,b1], name="bottom")
-'''
-h = 0.8
-#ov = gmsh.model.geo.extrude([(2, 1)], 0, h, 0, [2, 2], [0.5, 1])
-
-ov2 = gmsh.model.geo.extrude([(2, 1)], 0, h, 0)
-#print([ov[5][1]],len(ov), ov[0], ov)
-#print(ov2)
-#ov = gmsh.model.geo.extrude([(2, 1)], 0, 0, h)
+# Add volume
 gmsh.model.geo.synchronize()
+vol = gmsh.model.geo.addVolume([ss_loop])
+'''
 # Add physical groups for all 6 surfaces
 gmsh.model.addPhysicalGroup(2, [ov[-3][1]], tag=1202)  # Top surface
 gmsh.model.setPhysicalName(2, 1202, "right")
@@ -215,15 +216,14 @@ gmsh.model.setPhysicalName(2, 1204, "bottom")
 
 #gmsh.model.addPhysicalGroup(3, [1, 2, ov[1][1]], 1001)
 '''
-mesh = '2D'
-if mesh:
+mesh = '3D'
+if mesh == '2D':
     gmsh.model.geo.synchronize()
     gmsh.model.mesh.generate(2)
     gmsh.write("beach_profile.msh")
 else:
     gmsh.model.mesh.generate(3)
     gmsh.write("beach_3d.msh")
-
 
 if "-nopopup" not in sys.argv:
     gmsh.fltk.run()
