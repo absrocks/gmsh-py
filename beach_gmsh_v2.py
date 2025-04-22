@@ -75,8 +75,8 @@ p_bbrc = gmsh.model.geo.addPoint(x2, 0, h_max, lc/5) # Bottom back right corner
 #p_bfrc = gmsh.model.geo.addPoint(x2, y, h_max, lc/4) # Bottom front right corner
 p_tbrc = gmsh.model.geo.addPoint(x2, 0, h0, lc) # Top back right corner
 p_tfrc = gmsh.model.geo.addPoint(x2, y, h0, lc) # Top front right corner
-p_tblc = gmsh.model.geo.addPoint(x0, 0, h0, lc/4) # Top back left corner
-p_tflc = gmsh.model.geo.addPoint(x0, y, h0, lc/4) # Top front left corner
+p_tblc = gmsh.model.geo.addPoint(x0+0.866, 0, h0, lc/4) # Top back left corner
+p_tflc = gmsh.model.geo.addPoint(x0+0.866, y, h0, lc/4) # Top front left corner
 
 # Draw spline based on the points
 spl_back = gmsh.model.geo.addSpline(curve_pts_back)
@@ -133,13 +133,12 @@ for i in range(len(bl_top)):
         for j in range(len(lines)):
             coords0, coords1, point_id0, point_id1 = get_coords(lines[j])
             if coords0[0] == x2 and coords1[0] == x2:
-                #if (coords0[1] == 0 or coords1[1] == 0) and (coords0[1] == y or coords1[1] == y):
                 if coords0[1] == y:
-                    l_trf = gmsh.model.geo.addLine(point_id0, p_tfrc)    # C
-                    l_trb = gmsh.model.geo.addLine(p_tbrc, point_id1)
+                    l_trf = gmsh.model.geo.addLine(point_id0, p_tfrc)    # Connecting line between front right top and bottom point
+                    l_trb = gmsh.model.geo.addLine(p_tbrc, point_id1)    # Connecting line between back right top and bottom point
                 elif coords1[1] == y:
-                    l_tlf = gmsh.model.geo.addLine(point_id1, p_tfrc)
-                    l_tlb = gmsh.model.geo.addLine(p_tbrc, point_id0)
+                    l_trf = gmsh.model.geo.addLine(point_id1, p_tfrc)
+                    l_trb = gmsh.model.geo.addLine(p_tbrc, point_id0)
                 l_fbr = lines[j]                                        # Connecting line between bottom right front and back corner
             elif coords0[1] == 0 and coords1[0] == 0:
                 l_blr = lines[j]                                             # Connecting line between back bottom left and right corner
@@ -147,7 +146,14 @@ for i in range(len(bl_top)):
                 l_flr = lines[j]                                             # Connecting line between front bottom left and right corner
             elif coords0[0] == x0 and coords1[0] == x0:
                 l_fbl = lines[j]                                        # Connecting line between bottom left front and back corner
-
+                p_fbl0 = point_id0
+                p_fbl1 = point_id1
+                if coords0[1] == y:
+                    l_tlf = gmsh.model.geo.addLine(point_id0, p_tflc)    # Connecting line between front right top and bottom point
+                    l_tlb = gmsh.model.geo.addLine(p_tblc, point_id1)    # Connecting line between back right top and bottom point
+                elif coords1[1] == y:
+                    l_tlf = gmsh.model.geo.addLine(point_id1, p_tfrc)
+                    l_tlb = gmsh.model.geo.addLine(p_tblc, point_id0)
 # Create lines at left plane
 
 #ext_3d = gmsh.model.geo.extrude([(2, 54)], 0, 0, 5, recombine=True)
