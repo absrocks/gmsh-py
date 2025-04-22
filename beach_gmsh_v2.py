@@ -197,28 +197,7 @@ gmsh.model.addPhysicalGroup(2, [45, s_right], 504, "outlet")
 # Add volume
 gmsh.model.geo.synchronize()
 vol = gmsh.model.geo.addVolume([ss_loop])
-'''
-# Add physical groups for all 6 surfaces
-gmsh.model.addPhysicalGroup(2, [ov[-3][1]], tag=1202)  # Top surface
-gmsh.model.setPhysicalName(2, 1202, "right")
 
-gmsh.model.addPhysicalGroup(2, [ov[0][1]], tag=1203)  # Side 1
-gmsh.model.setPhysicalName(2, 1203, "front")
-
-gmsh.model.addPhysicalGroup(2, [ov[-2][1]], tag=1205)  # Side 3
-gmsh.model.setPhysicalName(2, 1205, "top")
-
-gmsh.model.addPhysicalGroup(2, [ov[-1][1]], tag=1206)  # Side 4
-gmsh.model.setPhysicalName(2, 1206, "left")
-# Collect all relevant surface tags into a list
-bottom_surfaces = [ov[i][1] for i in range(2, len(ov)-3)]
-
-# Add them all to a single physical group
-gmsh.model.addPhysicalGroup(2, bottom_surfaces, tag=1204)
-gmsh.model.setPhysicalName(2, 1204, "bottom")
-
-#gmsh.model.addPhysicalGroup(3, [1, 2, ov[1][1]], 1001)
-'''
 mesh = '3D'
 if mesh == '2D':
     gmsh.model.geo.synchronize()
