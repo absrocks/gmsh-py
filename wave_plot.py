@@ -157,35 +157,42 @@ def build_grid_from_flat(Cx, Cy, Cz, arrs, decimals=12):
         grids.append(G)
     return X, Y, Z, grids
 
-def epsilon(UPrime, Cx, Cy, Cz, nut, nu):
+def epsilon(UPrime, Cx, Cy, Cz, nut, nu, cases):
     UPrime = np.array(UPrime)
     nut = np.array(nut)
+    s_contract = []
+    s_contract_nut = []
     print("uprime.shape", UPrime.shape)
-    Ux, Uy, Uz = UPrime[:, 0], UPrime[:, 1], UPrime[:, 2]
+    print("nut.shape", nut.shape)
+    for icase in range(len(cases)):
+        X, Y, Z, (U3, nut3) = build_grid_from_flat(Cx, Cy, Cz, [UPrime[icase, :, :], nut[icase, :, :]])
+        print("U3.shape", U3.shape)
+        print("nut3.shape", nut3.shape)
+        Ux, Uy, Uz = U3[..., 0], U3[..., 1], U3[..., 2]
 
 
-    # Velocity gradients (structured grid)
-    dUx_dx, dUx_dy, dUx_dz = np.gradient(Ux, Cx, Cy, Cz, edge_order=2)
-    dUy_dx, dUy_dy, dUy_dz = np.gradient(Uy, Cx, Cy, Cz, edge_order=2)
-    dUz_dx, dUz_dy, dUz_dz = np.gradient(Uz, Cx, Cy, Cz, edge_order=2)
+        # Velocity gradients (structured grid)
+        dUx_dx, dUx_dy, dUx_dz = np.gradient(Ux, Cx, Cy, Cz, edge_order=2)
+        dUy_dx, dUy_dy, dUy_dz = np.gradient(Uy, Cx, Cy, Cz, edge_order=2)
+        dUz_dx, dUz_dy, dUz_dz = np.gradient(Uz, Cx, Cy, Cz, edge_order=2)
 
-    # Symmetric strain-rate components s'_{ij}
-    sxx = dUx_dx
-    syy = dUy_dy
-    szz = dUz_dz
-    sxy = 0.5 * (dUx_dy + dUy_dx)
-    sxz = 0.5 * (dUx_dz + dUz_dx)
-    syz = 0.5 * (dUy_dz + dUz_dy)
+        # Symmetric strain-rate components s'_{ij}
+        sxx = dUx_dx
+        syy = dUy_dy
+        szz = dUz_dz
+        sxy = 0.5 * (dUx_dy + dUy_dx)
+        sxz = 0.5 * (dUx_dz + dUz_dx)
+        syz = 0.5 * (dUy_dz + dUz_dy)
 
-    # Contraction s'_{ij}s'_{ij} = diag^2 + 2*offdiag^2
-    s_contract = (sxx ** 2 + syy ** 2 + szz ** 2) + 2.0 * (sxy ** 2 + sxz ** 2 + syz ** 2)
-
+        # Contraction s'_{ij}s'_{ij} = diag^2 + 2*offdiag^2
+        s_contract.append((sxx ** 2 + syy ** 2 + szz ** 2) + 2.0 * (sxy ** 2 + sxz ** 2 + syz ** 2))
+        s_contract_nut.append(((sxx ** 2 + syy ** 2 + szz ** 2) + 2.0 * (sxy ** 2 + sxz ** 2 + syz ** 2))* nut[icase])
     # Span average
     s_contract_avg = span_average(s_contract)
     eps_bar = 2.0 * nu * s_contract_avg
     # Component-wise multiplication by ν_tk BEFORE averaging, then scale by 2
     # Broadcast s_contract to (..., 1) to multiply each component
-    eps_vec = 2.0 * span_average(s_contract * nut)
+    eps_vec = 2.0 * span_average(s_contract_nut)
     eps = eps_bar + eps_vec
 
     return eps
@@ -252,7 +259,7 @@ print("UPrime2square_spanwise_avg.shape:", UPrime2square_spanwise_avg.shape)
 #for icase in range(len(cases)):
 #    SUPrimeMag2_nut[icase] = SUPrimeMag2_all[icase] * nut[icase]
 
-eps = epsilon(UPrime, Cx, Cy, Cz, nut, nu)
+eps = epsilon(UPrime, Cx, Cy, Cz, nut, nu, cases)
 
 TKE = 0.5 * np.sum(UPrime2square_spanwise_avg, axis=1)
 print("TKE.shape:", TKE.shape)
